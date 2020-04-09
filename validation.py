@@ -38,7 +38,7 @@ def write_to_s3_api(nch_file,file_nm,bucket_name):
     if file_nm_only[:1] != "P":
         file_nm_only = "P" + file_nm_only[1:]
     try:
-        os.system(comm)
+        os.system(commd)
         logger.info("Retrying copy to S3 - {0}".format(file_nm_only))
         return True
     except Exception as e:
@@ -248,7 +248,7 @@ if __name__ == "__main__":
 
 # THE NEW API CODE IS CALLED HERE
 
-                        elif write_to_s3_api(input_file,cfg.s3_bucket_name) == True:
+                        elif write_to_s3_api(input_file,nch_file_name_only,cfg.s3_bucket_name) == True:
                             os.remove(input_file)
                             os.remove(arch_file_name)
                             file_nm = nch_file_name_only
