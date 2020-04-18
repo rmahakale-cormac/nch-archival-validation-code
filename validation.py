@@ -32,22 +32,6 @@ def write_to_s3(nch_file,file_nm_only,bucket_name):
         logger.error(str(e))
         return False
 
-#INTRODUCING THE NEW FILE UPLOAD FUNCTION HERE
-def write_to_s3_api(nch_file,file_nm,bucket_name):
-    commd='aws s3 cp '+nch_file+ ' s3://'+bucket_name+'/'
-    if file_nm_only[:1] != "P":
-        file_nm_only = "P" + file_nm_only[1:]
-    try:
-        os.system(commd)
-        logger.info("Retrying copy to S3 - {0}".format(file_nm_only))
-        return True
-    except Exception as e:
-        logger.error("File upload to S3 failed - {0}".format(file_nm_only))
-        logger.error(str(e))
-        return False
-        
-
-
 def escape(c):
     c = ord(c)
     if c <= 0xff:
@@ -56,7 +40,8 @@ def escape(c):
         return r'\u{0:04x}'.format(c)
     else:
         return r'\U{0:08x}'.format(c)
-
+    
+# Decompressing the zipped file landed in data folder
 def decompress_file(path_name,file_path):
     with zipfile.ZipFile(path_name, 'r') as zip:
         # printing all the contents of the zip file
@@ -83,6 +68,8 @@ def get_file_name(path_name):
     nch_file_name_only = file_name_only[:-2] +""
     return nch_file_name_only, arch_file_name_only
 
+
+#defining the Validation logic here
 def valid(clm_type_aggr,trail_rec):
     calc_clm_type_aggrs={}
     aggrs=trail_rec.split(";")
@@ -246,15 +233,6 @@ if __name__ == "__main__":
                             arch_db_updt(act_type, file_nm, act_status)
 
 
-# THE NEW API CODE IS CALLED HERE
-
-                        elif write_to_s3_api(input_file,nch_file_name_only,cfg.s3_bucket_name) == True:
-                            os.remove(input_file)
-                            os.remove(arch_file_name)
-                            file_nm = nch_file_name_only
-                            act_type = "S3 Upload Completed"
-                            act_status = "Successful"
-                            arch_db_updt(act_type, file_nm, act_status)
                         else:
                             file_nm = nch_file_name_only
                             act_type = "S3 Upload Failed"
