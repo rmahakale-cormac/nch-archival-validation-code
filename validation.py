@@ -10,6 +10,7 @@ import boto3
 import zipfile
 import os
 from nch_arch_db_io import arch_db_updt
+
 def write_to_s3(nch_file,file_nm_only,bucket_name):
 # Create an S3 client
     S3 = boto3.client('s3',use_ssl=False, verify=False)
@@ -32,6 +33,17 @@ def write_to_s3(nch_file,file_nm_only,bucket_name):
         logger.error(str(e))
         return False
 
+   msg1=' has failed Validation'
+   msg2=' has failed Upload to S3'
+   def send_notif(filename,msg):
+       sns = boto3.client('sns')
+            # Publish a simple message to the specified SNS topic
+       response = sns.publish(
+            TopicArn='arn:aws:sns:us-west-2:832658686751:CD_status',
+                Message='File '+filename+msg,
+                                            )
+    
+    
 def escape(c):
     c = ord(c)
     if c <= 0xff:
@@ -93,6 +105,7 @@ def valid(clm_type_aggr,trail_rec):
         act_type = "Validation Completed"
         act_status = "Unsuccessful"
         arch_db_updt(act_type, file_nm, act_status, calc_aggrs=calc_clm_type_aggrs, file_aggrs=clm_type_aggr)
+        send_notif(file_nm,msg1)
         return False
     #print("file_aggrs: {0}".format(str(calc_clm_type_aggrs)))
     #print("calc_aggrs: {0}".format(str(clm_type_aggr)))
@@ -231,13 +244,24 @@ if __name__ == "__main__":
                             act_type = "S3 Upload Completed"
                             act_status = "Successful"
                             arch_db_updt(act_type, file_nm, act_status)
-
+                          
+            #Reuploading the file if S3 upload fails
+                            
+                        elseif write_to_s3(input_file, nch_file_name_only, cfg.s3_bucket_name) == True:
+                            os.remove(input_file)
+                            os.remove(arch_file_name)
+                            file_nm = nch_file_name_only
+                            act_type = "S3 upload Completed"
+                            act_status = "Successful"
+                            arch_db_updt(act_type, file_nm, act_status)
+                           
 
                         else:
                             file_nm = nch_file_name_only
                             act_type = "S3 Upload Failed"
                             act_status = "Unsuccessful"
                             arch_db_updt(act_type, file_nm, act_status)
+                            send_notif(file_nm,msg2)
                     else:
                         shutil.move(input_file, cfg.pass_valdtn_file_path + nch_file_name_only)
                         logger.info("Moved file {0} to {1}".format(nch_file_name_only,cfg.pass_valdtn_file_path))
